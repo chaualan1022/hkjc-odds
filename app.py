@@ -2,36 +2,40 @@ import streamlit as st
 import pandas as pd
 import requests
 
-st.title("⚽ HKJC Home Odds > 1.9")
+st.title("⚽ Football Matches (Home Odds > 1.9)")
 
 @st.cache_data(ttl=300)
 def get_data():
-    url = "https://bet.hkjc.com/football/getJSON.aspx?jsontype=odds_allodds"
-
-    headers = {
-        "User-Agent": "Mozilla/5.0"
+    url = "https://api.the-odds-api.com/v4/sports/soccer/odds/"
+    
+    params = {
+        "regions": "eu",
+        "markets": "h2h",
+        "oddsFormat": "decimal",
+        "apiKey": "YOUR_API_KEY"
     }
 
-    res = requests.get(url, headers=headers)
+    res = requests.get(url, params=params)
     data = res.json()
 
     matches = []
 
-    try:
-        for match in data["matches"]:
-            home = match.get("homeTeamName")
-            away = match.get("awayTeamName")
+    for game in data:
+        try:
+            home = game["home_team"]
+            away = game["away_team"]
 
-            had = match.get("had", {})
-            home_odds = had.get("h")
+            # take first bookmaker
+            odds = game["bookmakers"][0]["markets"][0]["outcomes"]
 
-            if home_odds:
-                home_odds = float(home_odds)
+            for o in odds:
+                if o["name"] == home:
+                    home_odds = float(o["price"])
 
-                if home_odds > 1.9:
-                    matches.append([home, away, home_odds])
-    except:
-        pass
+                    if home_odds > 1.9:
+                        matches.append([home, away, home_odds])
+        except:
+            continue
 
     return pd.DataFrame(matches, columns=["Home", "Away", "Home Odds"])
 
