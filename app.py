@@ -12,7 +12,7 @@ def get_data():
         "regions": "eu",
         "markets": "h2h",
         "oddsFormat": "decimal",
-        "apiKey": "YOUR_API_KEY"
+        "apiKey": "cf9ec9f6bd2c8e2fdead11116576821d"
     }
 
     res = requests.get(url, params=params)
