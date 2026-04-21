@@ -1,40 +1,39 @@
 import streamlit as st
 import pandas as pd
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-import time
+import requests
 
 st.title("⚽ HKJC Home Odds > 1.9")
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=300)
 def get_data():
-    options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--no-sandbox")
+    url = "https://bet.hkjc.com/football/getJSON.aspx?jsontype=odds_allodds"
 
-    driver = webdriver.Chrome(options=options)
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
 
-    driver.get("https://bet.hkjc.com/ch/football/home")
-    time.sleep(10)
+    res = requests.get(url, headers=headers)
+    data = res.json()
 
-    rows = driver.find_elements("xpath", "//tr")
+    matches = []
 
-    data = []
+    try:
+        for match in data["matches"]:
+            home = match.get("homeTeamName")
+            away = match.get("awayTeamName")
 
-    for row in rows:
-        try:
-            tds = row.find_elements("tag name", "td")
-            home = tds[1].text
-            away = tds[3].text
-            odds = float(tds[5].text)
+            had = match.get("had", {})
+            home_odds = had.get("h")
 
-            if odds > 1.9:
-                data.append([home, away, odds])
-        except:
-            continue
+            if home_odds:
+                home_odds = float(home_odds)
 
-    driver.quit()
-    return pd.DataFrame(data, columns=["Home", "Away", "Home Odds"])
+                if home_odds > 1.9:
+                    matches.append([home, away, home_odds])
+    except:
+        pass
+
+    return pd.DataFrame(matches, columns=["Home", "Away", "Home Odds"])
 
 df = get_data()
 
